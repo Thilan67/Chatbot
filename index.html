@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FECT ai Assistant</title>
+    <meta charset="utf-8">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f0f4f8;
+        }
+
+        /* ── Floating Button ── */
+        #chat-toggle {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 60px;
+            height: 60px;
+            background: #1a2e4a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            z-index: 1000;
+            transition: background 0.2s, transform 0.2s;
+        }
+        #chat-toggle:hover {
+            background: #2e5090;
+            transform: scale(1.08);
+        }
+        #chat-toggle svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+        }
+
+        /* Notification dot */
+        #notif-dot {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 14px;
+            height: 14px;
+            background: #e53935;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        /* ── Chat Window ── */
+        #chat-window {
+            position: fixed;
+            bottom: 100px;
+            right: 28px;
+            width: 380px;
+            height: 520px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+            display: flex;
+            flex-direction: column;
+            z-index: 999;
+            overflow: hidden;
+            transform: scale(0);
+            transform-origin: bottom right;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #chat-window.open {
+            transform: scale(1);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* ── Header ── */
+        #chat-header {
+            background: #1a2e4a;
+            color: white;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .avatar {
+            width: 42px;
+            height: 42px;
+            background: #2e5090;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .header-info h3 { font-size: 15px; font-weight: 600; }
+        .header-info p  { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+        .online-dot {
+            width: 8px; height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        #close-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            opacity: 0.7;
+            line-height: 1;
+        }
+        #close-btn:hover { opacity: 1; }
+
+        /* ── Messages ── */
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px;
+            background: #f7f9fc;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #chat-box::-webkit-scrollbar { width: 4px; }
+        #chat-box::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+        .user-msg {
+            background: #1a2e4a;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 16px 16px 4px 16px;
+            max-width: 80%;
+            margin-left: auto;
+            font-size: 13.5px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .bot-msg {
+            background: white;
+            color: #2c3e50;
+            padding: 10px 14px;
+            border-radius: 16px 16px 16px 4px;
+            max-width: 80%;
+            font-size: 13.5px;
+            line-height: 1.6;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            border-left: 3px solid #2e5090;
+            word-wrap: break-word;
+        }
+        .typing { color: #999; font-style: italic; border-left: 3px solid #ccc; }
+
+        /* ── Input Area ── */
+        #chat-footer {
+            padding: 12px;
+            background: white;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        #chat-input-area {
+            display: flex;
+            gap: 8px;
+        }
+        #chat-input {
+            flex: 1;
+            padding: 10px 13px;
+            border: 1px solid #dde3ec;
+            border-radius: 8px;
+            outline: none;
+            font-size: 13.5px;
+            background: #f7f9fc;
+            transition: border 0.2s;
+        }
+        #chat-input:focus { border-color: #2e5090; background: white; }
+        #send-btn {
+            padding: 10px 16px;
+            background: #1a2e4a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        #send-btn:hover { background: #2e5090; }
+        #chat-footer p {
+            text-align: center;
+            font-size: 11px;
+            color: #bbb;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Floating Toggle Button -->
+<div id="chat-toggle" onclick="toggleChat()">
+    <div id="notif-dot"></div>
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+    </svg>
+</div>
+
+<!-- Chat Window -->
+<div id="chat-window">
+    <div id="chat-header">
+        <div class="avatar">A</div>
+        <div class="header-info">
+            <h3>FECT ai Assistant</h3>
+            <p><span class="online-dot"></span>Online - Powered by AI</p>
+        </div>
+        <button id="close-btn" onclick="toggleChat()">&#x2715;</button>
+    </div>
+
+    <div id="chat-box">
+        <div class="bot-msg">Welcome! I am your ai assistant. How can I help you today?</div>
+    </div>
+
+    <div id="chat-footer">
+        <div id="chat-input-area">
+            <input id="chat-input" type="text" placeholder="Type your question..." />
+            <button id="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+        <p>Responses based on company documents</p>
+    </div>
+</div>
+
+<script>
+function toggleChat() {
+    const win = document.getElementById("chat-window");
+    const dot = document.getElementById("notif-dot");
+    win.classList.toggle("open");
+    dot.style.display = "none"; // hide dot when opened
+}
+
+async function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const box = document.getElementById("chat-box");
+    const userText = input.value.trim();
+    if (!userText) return;
+
+    box.innerHTML += `<div class="user-msg">${userText}</div>`;
+    input.value = "";
+    box.innerHTML += `<div class="bot-msg typing" id="typing">Searching documents...</div>`;
+    box.scrollTop = box.scrollHeight;
+
+    try {
+        const res = await fetch("https://optimistic-youth-production.up.railway.app/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: userText })
+        });
+        const data = await res.json();
+        document.getElementById("typing").remove();
+        box.innerHTML += `<div class="bot-msg">${data.reply}</div>`;
+    } catch (err) {
+        document.getElementById("typing").remove();
+        box.innerHTML += `<div class="bot-msg">Unable to connect. Please try again.</div>`;
+    }
+    box.scrollTop = box.scrollHeight;
+}
+
+document.getElementById("chat-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMessage();
+});
+</script>
+</body>
+</html>
