@@ -15,7 +15,7 @@ client = OpenAI(
 
 # ── COMPANY-ONLY FILTER ──────────────────────────────────────
 
-COMPANY_NAME = "CompanyNameHere"  # 
+COMPANY_NAME = "NexVeraTec"  # 
 
 # Greetings that should ALWAYS be allowed
 ALLOWED_PHRASES = [
